@@ -18,9 +18,8 @@ A comprehensive pipeline for training, rendering, and visualizing 3D scenes usin
 This project uses [`uv`](https://github.com/astral-sh/uv) for extremely fast Python package and resolution management.
 
 1. **Install `uv`** (if you haven't already):
-   ```bash
-   curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
-
+```bash
+curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
 ```
 
 2. **Clone the repository and sync dependencies**:

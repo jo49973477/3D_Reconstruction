@@ -140,7 +140,7 @@ def tless_test():
     
     
 def tinynerf_test():
-    tinynerf = TinyNerfDataset("tiny_nerf_data.npz", detail= True)
+    tinynerf = TinyNerfDataset("dataset/tiny_nerf_data.npz", detail= True)
 
     image, poses, focal = tinynerf.get(10)
     img_raw, _, _ = tinynerf[10]

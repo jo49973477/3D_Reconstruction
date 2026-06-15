@@ -26,3 +26,6 @@ class GSConfig(BaseModel):
     directory: str
     name: str
     save_directory: str
+    colmap_image_path: str
+    random: bool = False
+    pt_name: str = "model.pt"

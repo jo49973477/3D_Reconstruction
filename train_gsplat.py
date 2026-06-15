@@ -30,8 +30,6 @@ class GaussianSplatting:
         else:
             means_tensor, colors_tensor = self.get_colmap(path)
         
-        # [수정 1] 색상 초기화 시 Logit 적용 (시그모이드 역함수)
-        # 0~1 사이의 값을 clamp로 안전하게 만든 뒤 logit을 씌워야 렌더링 시 원래 색이 나옵니다.
         colors_tensor = torch.logit(colors_tensor.clamp(1e-6, 1-1e-6))
         
         points_np = means_tensor.detach().cpu().numpy()
@@ -78,6 +76,7 @@ class GaussianSplatting:
         self.strategy_state = self.strategy.initialize_state()
         
         self.save_path = cfg.save_directory
+        self.pt_name = cfg.pt_name
         
         wandb.init(
             project="3DGS-TEST", 
@@ -92,12 +91,12 @@ class GaussianSplatting:
         
         # 1. 🚀 핵심: 이미 완성된 COLMAP 결과가 있는지 얌체처럼 확인하기
         if os.path.exists(points_bin_path) or os.path.exists(points_txt_path):
-            print(f"😎 [개이득] 이미 완성된 COLMAP 데이터를 발견했습니다! 지루한 연산을 건너뜁니다: {sparse_path}")
+            print(f"😎 [PROFIT!!] Already discovered COLMAP results: {sparse_path}")
             reconstruction = pycolmap.Reconstruction(sparse_path)
             
         else:
             # 2. 저장된 파일이 없다면 눈물을 머금고 처음부터 연산
-            print("⏳ [안내] 저장된 COLMAP 데이터가 없습니다. 뼈 빠지는 연산을 시작합니다...")
+            print("⏳ [NOTIFICATION] There is no saved COLMAP data. Starting time-consuming computation...")
             os.makedirs(output_dir, exist_ok=True)
             
             database_path = os.path.join(output_dir, "database.db")
@@ -110,7 +109,7 @@ class GaussianSplatting:
             maps = pycolmap.incremental_mapping(database_path, path, output_dir)
             
             if len(maps) < 1:
-                raise ValueError("😱[ERROR] SfM으로 backbone을 만드는 데 실패했어요.")
+                raise ValueError("😱[ERROR] Failed to make a backbone via SfM.")
             
             # 연산이 끝난 소중한 결과를 다음번을 위해 파일로 저장해 둡니다.
             os.makedirs(sparse_path, exist_ok=True)
@@ -125,19 +124,19 @@ class GaussianSplatting:
     
         means = torch.from_numpy(xyz).float()
         colors = torch.from_numpy(rgb).float()
-        print(f"🎉[SUCCEEDED] SfM feature point {len(means)}개를 성공적으로 로드했습니다!")
+        print(f"🎉[SUCCEEDED] Successfully loaded SfM feature point {len(means)}개!")
         
         return means.cuda(), colors.cuda()
     
     
     def save_weights(self):
         os.makedirs(self.save_path, exist_ok=True)
-        save_path = os.path.join(self.save_path, "tless_latest.pt")
+        save_path = os.path.join(self.save_path, self.pt_name)
         
         # [수정 3] 언패킹 에러 방지를 위해 .items() 추가
         torch.save({k: v.detach().cpu() for k, v in self.param_dict.items()}, save_path)
         
-        print(f"💾 [저장 완료] 3090의 땀방울이 {save_path} 에 안전하게 봉인되었습니다!!")
+        print(f"💾 [COMPLETED] Safely saved weights to {save_path}!")
     
     
     def get_viewmat(self, c2w):
@@ -185,7 +184,7 @@ class GaussianSplatting:
         # [수정 5] Tiny NeRF 데이터셋을 위한 흑색 배경 명시
         
         if self.param_dict["means"].shape[0] == 0:
-            print(f"\n[💥 비상 탈출] {global_step} 스텝에서 점이 0개가 되었습니다!!")
+            print(f"\n[💥EMERGENCY] Dots decreased to 0 at step {global_step}!!")
             return gt_img[0], loss.item() # 엔진으로 넘기지 않고 강제 리턴!
         
         pred_img, _, render_info = rasterization(
@@ -223,7 +222,7 @@ class GaussianSplatting:
         loss.backward()
         
         if torch.isnan(loss):
-            print(f"\n[💥 비상] {global_step} 스텝에서 NaN이 발생했습니다! 학습을 즉시 건너뜁니다.")
+            print(f"\n[💥EMERGENCY] NaN detected at step {global_step}! Skipping training step.")
             self.optimizers.zero_grad() # 오염된 값 초기화
             return gt_img[0], 0.0
         
@@ -290,5 +289,5 @@ if __name__ == "__main__":
                              shuffle=True, 
                              num_workers=0)
     
-    gs = GaussianSplatting(main_cfg, trainloader)
+    gs = GaussianSplatting(main_cfg, trainloader, strategy=None, colmap_image_path=main_cfg.colmap_image_path, random=main_cfg.random)
     gs.train()

@@ -8,3 +8,5 @@ dataset: "tiny"
 directory: "tiny_nerf_data.npz"
 name: "Run_06_TinyNerf_Test"
 save_directory: "3dgs_checkpoint"
+colmap_image_path: "colmap_images"
+random: False

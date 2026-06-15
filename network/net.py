@@ -5,7 +5,7 @@ import torch.nn as nn
 class NeRF_MLP(nn.Module):
     
     def __init__(self, input_ch=63, input_ch_views=27, hidden=256, layers=8, skips=[4]):
-        super().__init__() # 1. 필수!
+        super().__init__() 
         
         self.skips = skips
         self.layers = layers
@@ -23,31 +23,28 @@ class NeRF_MLP(nn.Module):
         self.views_linears = nn.Sequential(
             nn.Linear(hidden + input_ch_views, hidden // 2),
             nn.ReLU(),
-            nn.Linear(hidden // 2, 3) # 최종 RGB 3채널 출력
+            nn.Linear(hidden // 2, 3) 
         )
 
 
     def forward(self, x, d):
         """
-        x: 위치 인코딩된 좌표 [N_rays, N_samples, 63]
-        d: 위치 인코딩된 방향 [N_rays, N_samples, 27]
+        x: positional encoding of coordinates [N_rays, N_samples, 63]
+        d: positional encoding of view direction [N_rays, N_samples, 27]
         """
         h = x
         
-        # 8개의 층을 통과 (스킵 커넥션 포함)
+        #  Passes 8 layers
         for i, layer in enumerate(self.pts_linears):
             h = layer(h)
             h = nn.functional.relu(h)
             if i in self.skips:
-                h = torch.cat([x, h], dim=-1) # 원본 x를 옆에다 찰싹 붙여줌!
+                h = torch.cat([x, h], dim=-1) 
                 
-        # 밀도 출력 (1채널)
         sigma = self.sigma_out(h)
         
-        # 방향 정보 합쳐서 RGB 출력 (3채널)
         feature = self.feature_linear(h)
-        h = torch.cat([feature, d], dim=-1) # 방향 정보(d) 합치기!
+        h = torch.cat([feature, d], dim=-1) 
         rgb = self.views_linears(h)
         
-        # rgb(3) + sigma(1) = 4채널로 합쳐서 리턴
         return torch.cat([rgb, sigma], dim=-1)

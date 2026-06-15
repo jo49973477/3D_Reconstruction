@@ -18,8 +18,8 @@ import hydra
 
 from dataset import TinyNerfDataset, TLessDataset
 from config import MainConfig
-from net import NeRF_MLP
-from embedding import PositionalEncoder
+from network.net import NeRF_MLP
+from network.embedding import PositionalEncoder
 from utils import get_rays, sample_points_along_rays, volume_rendering
 
 
@@ -137,5 +137,5 @@ if __name__ == "__main__":
         log_every_n_steps=10     # 10 스텝마다 로그 기록
     )
 
-    print("🚀 Lightning 학습 시작!")
+    print("🚀 Lightning Training Started!")
     trainer.fit(model, train_dataloaders=trainloader)
